@@ -25,16 +25,20 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ Import navigate
 
 const navItems = [
-  { label: "Home", icon: <Home size={22} />, route: "/" }, // ✅ Route added
-  { label: "Search", icon: <Search size={22} /> },
-  { label: "Explore", icon: <Compass size={22} /> },
-  { label: "Reels", icon: <Clapperboard size={22} /> },
-  { label: "Messages", icon: <Send size={22} /> },
-  { label: "Notifications", icon: <Heart size={22} /> },
-  { label: "Create", icon: <Plus size={22} /> },
-  { label: "Profile", icon: <User size={22} /> },
-  { label: "Meta AI", icon: <Circle size={22} /> },
-  { label: "Threads", icon: <Link2 size={22} /> },
+  { label: "Home", icon: <Home size={22} />, route: "/" },
+  { label: "Search", icon: <Search size={22} />, route: "/search" },
+  { label: "Explore", icon: <Compass size={22} />, route: "/explore" },
+  { label: "Reels", icon: <Clapperboard size={22} />, route: "/reels" },
+  { label: "Messages", icon: <Send size={22} />, route: "/messages" },
+  {
+    label: "Notifications",
+    icon: <Heart size={22} />,
+    route: "/notifications",
+  },
+  { label: "Create", icon: <Plus size={22} />, route: "/create" },
+  { label: "Profile", icon: <User size={22} />, route: "/profile" },
+  { label: "Meta AI", icon: <Circle size={22} />, route: "/meta-ai" },
+  { label: "Threads", icon: <Link2 size={22} />, route: "/threads" },
 ];
 
 export default function Sidebar() {
