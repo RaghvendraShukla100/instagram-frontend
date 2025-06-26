@@ -30,7 +30,7 @@ const suggestedUsers = [
 
 const UserSuggestions = () => {
   return (
-    <div className="w-full max-w-sm text-sm text-gray-400 space-y-4">
+    <div className="w-full  px-5 max-w-sm text-sm text-gray-400 space-y-4">
       {/* Current User Section */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">

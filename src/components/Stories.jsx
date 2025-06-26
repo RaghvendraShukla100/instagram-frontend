@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react"; // or any other icons
 
-const FollowList = () => {
+const Stories = () => {
   const storyList = [
     {
       name: "neha",
@@ -57,7 +57,7 @@ const FollowList = () => {
   };
 
   return (
-    <div className="relative flex items-center gap-4 py-5 px-4">
+    <div className="relative flex items-center gap-4 py-5 ">
       {/* Left Arrow */}
       {hasMoreLeft && (
         <button
@@ -104,4 +104,4 @@ const FollowList = () => {
   );
 };
 
-export default FollowList;
+export default Stories;
