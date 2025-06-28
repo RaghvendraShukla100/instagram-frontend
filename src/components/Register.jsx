@@ -10,29 +10,54 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     try {
+      console.log("Raw form data:", data);
+
       const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("username", data.username);
-      formData.append("email", data.email);
-      formData.append("password", data.password);
-      formData.append("age", data.age);
-      formData.append("mobile", data.mobile);
-      formData.append("bio", data.bio);
-      formData.append("accountType", data.accountType);
-      if (data.profilePic[0]) {
+      formData.append("name", data.name || "");
+      formData.append("username", data.username || "");
+      formData.append("email", data.email || "");
+      formData.append("password", data.password || "");
+      formData.append("age", data.age || "");
+      formData.append("mobile", data.mobile || "");
+      formData.append("bio", data.bio || "");
+      formData.append(
+        "isPrivate",
+        data.accountType === "private" ? "true" : "false"
+      );
+
+      if (data.profilePic && data.profilePic[0]) {
         formData.append("profilePic", data.profilePic[0]);
       }
 
-      const response = await axios.post("/api/auth/register", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
 
-      console.log("Server response:", response.data);
+      const response = await axios.post(
+        "http://localhost:5000/api/users/register",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("Success:", response.data);
+
+      // ✅ Store token in localStorage
+      localStorage.setItem("token", response.data.token);
+
+      // ✅ Optional: Store user data in localStorage for easy retrieval
+      localStorage.setItem("user", JSON.stringify(response.data));
+
       reset();
+
+      // ✅ Redirect to home/dashboard after registration
+      navigate("/");
     } catch (error) {
       console.error("Error submitting form:", error);
+      console.log("Error response data:", error?.response?.data);
     }
   };
 

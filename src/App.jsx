@@ -1,11 +1,22 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import Sidebar from "./components/Sidebar"; // replace Navbar with Sidebar
+import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Explore from "./pages/Explore";
 import PageNotFound from "./pages/PageNotFound";
+import Reels from "./pages/Reels";
+import DetailedPost from "./pages/DetailedPost";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Profile from "./pages/Profile";
+import axios from "axios"; // ✅ import axios here
+
+// ✅ Set token as default header (if it exists)
+const token = localStorage.getItem("token");
+if (token) {
+  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
 
 function App() {
   return (
@@ -14,17 +25,43 @@ function App() {
         <Sidebar />
         <div className="flex-1">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/explore"
+              element={
+                <ProtectedRoute>
+                  <Explore />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reels"
+              element={
+                <ProtectedRoute>
+                  <Reels />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notification"
+              element={
+                <ProtectedRoute>
+                  <DetailedPost />
+                </ProtectedRoute>
+              }
+            />
+            {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/explore" element={<Explore />} />
-            {/* <Route path="/profile" element={<Register />} /> */}
-            {/* <Route path="/reels" element={<Register />} /> */}
-            {/* <Route path="/notification" element={<Register />} /> */}
-            {/* <Route path="/message" element={<Register />} /> */}
-            {/* <Route path="/create" element={<Register />} /> */}
+            <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<PageNotFound />} />
-            {/* Other routes */}
           </Routes>
         </div>
       </div>

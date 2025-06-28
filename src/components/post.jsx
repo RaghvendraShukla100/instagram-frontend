@@ -1,205 +1,482 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import axios from "axios";
 import {
   MoreHorizontal,
-  Smile,
   Heart,
   MessageCircle,
   Send,
   Bookmark,
-  CheckCircle,
   ChevronRight,
   ChevronLeft,
+  CheckCircle,
 } from "lucide-react";
-
-const postData = [
-  {
-    profileImage:
-      "https://i.pinimg.com/736x/6a/c1/f8/6ac1f86b310a39559215d5b4439e2a39.jpg",
-    userName: "chanelsoerholt",
-    timePassedFromPost: "2d",
-    caption: "just watching the sunset 🌅 what about u?",
-    likeCount: 13458,
-    commentCout: 1248,
-    postImages: [
-      "https://i.pinimg.com/736x/d0/b0/c5/d0b0c5089d2d475f1e974ebdc48cfa95.jpg",
-      "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-      "https://i.pinimg.com/736x/19/cc/d8/19ccd85eaf493588018f58a1c590194c.jpg",
-    ],
-    isVerified: true,
-  },
-  {
-    profileImage:
-      "https://i.pinimg.com/736x/6a/c1/f8/6ac1f86b310a39559215d5b4439e2a39.jpg",
-    userName: "nikitadatta",
-    timePassedFromPost: "2h",
-    caption: "just watching the sunset 🌅 what about u?",
-    likeCount: 13458,
-    commentCout: 1248,
-    postImages: [
-      "https://i.pinimg.com/736x/50/c4/68/50c46853d24196c583a695b8f448f820.jpg",
-      "https://i.pinimg.com/736x/0e/43/d5/0e43d5982749b83f8a688cf66185d5f4.jpg",
-      "https://i.pinimg.com/736x/43/43/b1/4343b162a8a57d82b2d964f43e3bb9a1.jpg",
-      "https://i.pinimg.com/736x/1d/c2/8b/1dc28bf3627cfa574220a62f1a99f3a8.jpg",
-    ],
-    isVerified: true,
-  },
-];
+import { AiFillDelete } from "react-icons/ai";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { AnimatePresence, motion } from "framer-motion";
+dayjs.extend(relativeTime);
 
 function Post() {
-  const [carouselIndex, setCarouselIndex] = useState(
-    Array(postData.length).fill(0)
-  );
-  const [direction, setDirection] = useState(
-    Array(postData.length).fill("next")
-  );
+  const [postDatas, setPostDatas] = useState([]);
+  const [carouselIndex, setCarouselIndex] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [commentInputs, setCommentInputs] = useState({});
+  const [expandedPosts, setExpandedPosts] = useState(new Set());
+  const videoRefs = useRef([]);
+  const observer = useRef();
 
-  const handleNext = (postIdx, totalImages) => {
-    setCarouselIndex((prev) => {
-      const updated = [...prev];
-      updated[postIdx] = (updated[postIdx] + 1) % totalImages;
-      return updated;
-    });
-    setDirection((prev) => {
-      const updated = [...prev];
-      updated[postIdx] = "next";
-      return updated;
-    });
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `http://localhost:5000/api/posts?page=${page}`,
+        { withCredentials: true }
+      );
+      if (res.data.length === 0) {
+        setHasMore(false);
+      } else {
+        setPostDatas((prev) => {
+          const existingIds = new Set(prev.map((p) => p._id));
+          const filteredNew = res.data.filter((p) => !existingIds.has(p._id));
+          return [...prev, ...filteredNew];
+        });
+        setCarouselIndex((prev) => [
+          ...prev,
+          ...Array(res.data.length).fill(0),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrev = (postIdx, totalImages) => {
-    setCarouselIndex((prev) => {
-      const updated = [...prev];
-      updated[postIdx] = (updated[postIdx] - 1 + totalImages) % totalImages;
-      return updated;
-    });
-    setDirection((prev) => {
-      const updated = [...prev];
-      updated[postIdx] = "prev";
-      return updated;
-    });
+  useEffect(() => {
+    fetchPosts();
+  }, [page]);
+
+  const lastPostElementRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore) {
+            setPage((prev) => prev + 1);
+          }
+        },
+        { threshold: 1 }
+      );
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
+  const toggleComments = async (postId) => {
+    if (expandedPosts.has(postId)) {
+      // Collapse comments
+      setExpandedPosts((prev) => {
+        const updated = new Set(prev);
+        updated.delete(postId);
+        return updated;
+      });
+    } else {
+      try {
+        console.log("Fetching comments for postId:", postId);
+
+        const res = await axios.get(
+          `http://localhost:5000/api/comments/${postId}`,
+          { withCredentials: true }
+        );
+
+        console.log("Fetched comments:", res.data.comments);
+
+        const fetchedComments = res.data.comments.map((comment) => ({
+          ...comment,
+          createdBy: {
+            ...comment.createdBy,
+            profilePic: comment.createdBy.profilePic.replace(/\\/g, "/"),
+          },
+        }));
+
+        setPostDatas((prev) =>
+          prev.map((post) =>
+            post._id === postId ? { ...post, comments: fetchedComments } : post
+          )
+        );
+
+        setExpandedPosts((prev) => {
+          const updated = new Set(prev);
+          updated.add(postId);
+          return updated;
+        });
+      } catch (error) {
+        console.error(
+          "❌ Error fetching all comments:",
+          error.response?.data || error.message
+        );
+      }
+    }
   };
 
+  const handleLike = async (postId, idx) => {
+    try {
+      const post = postDatas[idx];
+      const alreadyLiked = post.isLikedByUser;
+
+      if (!alreadyLiked) {
+        await axios.post(
+          `http://localhost:5000/api/likes/${postId}`,
+          {},
+          { withCredentials: true }
+        );
+      } else {
+        await axios.delete(`http://localhost:5000/api/likes/${postId}`, {
+          withCredentials: true,
+        });
+      }
+
+      setPostDatas((prev) => {
+        const updated = [...prev];
+        updated[idx] = {
+          ...post,
+          isLikedByUser: !alreadyLiked,
+          likeCount: post.likeCount + (alreadyLiked ? -1 : 1),
+        };
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
+  const handleSave = async (postId, idx) => {
+    try {
+      const post = postDatas[idx];
+      const alreadySaved = post.isSavedByUser;
+
+      if (!alreadySaved) {
+        await axios.post(
+          `http://localhost:5000/api/saves/${postId}`,
+          {},
+          { withCredentials: true }
+        );
+      } else {
+        await axios.delete(`http://localhost:5000/api/saves/${postId}`, {
+          withCredentials: true,
+        });
+      }
+
+      setPostDatas((prev) => {
+        const updated = [...prev];
+        updated[idx] = {
+          ...post,
+          isSavedByUser: !alreadySaved,
+          saveCount: post.saveCount + (alreadySaved ? -1 : 1),
+        };
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error toggling save:", error);
+    }
+  };
+
+  const handleInputChange = (postId, value) => {
+    setCommentInputs((prev) => ({ ...prev, [postId]: value }));
+  };
+
+  const handleCommentSubmit = async (e, postId, idx) => {
+    e.preventDefault();
+    const commentText = commentInputs[postId]?.trim();
+    if (!commentText) return;
+
+    try {
+      const res = await axios.post(
+        `http://localhost:5000/api/comments/${postId}`,
+        { text: commentText },
+        { withCredentials: true }
+      );
+
+      setPostDatas((prev) => {
+        const updated = [...prev];
+        const post = updated[idx];
+        const newComment = res.data.comment;
+
+        const existingComments = Array.isArray(post.comments)
+          ? post.comments
+          : [];
+
+        updated[idx] = {
+          ...post,
+          comments: [
+            newComment,
+            ...existingComments.filter((c) => c._id !== newComment._id),
+          ].slice(0, 3),
+          commentCount: post.commentCount + 1,
+        };
+        return updated;
+      });
+
+      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+    }
+  };
+
+  //////////////////////////
+
+  const handleDeleteComment = async ({
+    commentId,
+    postId,
+    postIdx,
+    setPostDatas,
+  }) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/comments/${commentId}`, {
+        withCredentials: true,
+      });
+
+      setPostDatas((prev) => {
+        const updated = [...prev];
+        const post = updated[postIdx];
+
+        const updatedComments = post.comments.filter(
+          (c) => c._id !== commentId
+        );
+
+        updated[postIdx] = {
+          ...post,
+          comments: updatedComments,
+          commentCount: post.commentCount - 1,
+        };
+
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error(error.response?.data?.message || "Failed to delete comment");
+    }
+  };
+
+  ////////////////////////////
   return (
-    <div className="space-y-5 ">
-      {postData.map((elm, idx) => {
-        const currentImage = elm.postImages[carouselIndex[idx]];
+    <div className="space-y-5">
+      {postDatas.map((elm, idx) => {
+        const mediaItems = elm.media;
+        const currentMedia = mediaItems[carouselIndex[idx]];
+        const mediaUrl = `http://localhost:5000/${currentMedia.url.replace(
+          /\\/g,
+          "/"
+        )}`;
+        const profilePic = `http://localhost:5000/${elm.createdBy.profilePic.replace(
+          /\\/g,
+          "/"
+        )}`;
+        const showAllComments = expandedPosts.has(elm._id);
+        const displayedComments = showAllComments
+          ? elm.comments
+          : elm.comments?.slice(0, 2);
 
         return (
           <div
-            key={idx}
-            className=" max-w-lg mx-auto bg-white dark:bg-black text-black dark:text-white font-sans transition-colors duration-300"
+            key={elm._id}
+            ref={idx === postDatas.length - 1 ? lastPostElementRef : null}
+            className="max-w-lg mx-auto bg-white dark:bg-black text-black dark:text-white font-sans rounded-sm shadow-sm"
           >
-            {/* post Header */}
-            <div className="flex items-center justify-between py-3 ">
+            <div className="flex justify-between items-center mt-10">
               <div className="flex items-center gap-3">
                 <img
-                  src={elm.profileImage}
+                  src={profilePic}
                   className="h-10 w-10 rounded-full object-cover"
-                  alt={elm.userName}
+                  alt={elm.createdBy.username}
                 />
-                <div className="flex  gap-x-3">
+                <div className="flex gap-4">
                   <div className="flex items-center gap-1 text-sm font-semibold">
-                    <span>{elm.userName}</span>
-                    {elm.isVerified && (
+                    <span>{elm.createdBy.username}</span>
+                    {elm.createdBy.isVerified && (
                       <CheckCircle className="text-blue-500 w-4 h-4" />
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {elm.timePassedFromPost} •{" "}
-                    <span className="text-blue-500 font-medium cursor-pointer">
-                      Follow
-                    </span>
+                  <div className="text-xs text-gray-500">
+                    {dayjs(elm.createdAt).fromNow()}
                   </div>
                 </div>
               </div>
-              <MoreHorizontal className="cursor-pointer text-black dark:text-white" />
+              <MoreHorizontal className="cursor-pointer" />
             </div>
 
-            {/* post body  */}
-            <div className="relative overflow-hidden w-full h-[700px]">
-              <img
-                src={currentImage}
-                alt="post"
-                key={currentImage} // triggers re-render for transition
-                className={`w-full h-full object-cover transition-all duration-500 ease-in-out transform ${
-                  direction[idx] === "next"
-                    ? "translate-x-0 animate-slide-in-right"
-                    : "translate-x-0 animate-slide-in-left"
-                }`}
-              />
-
-              {carouselIndex[idx] > 0 && (
-                <button
-                  onClick={() => handlePrev(idx, elm.postImages.length)}
-                  className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black/50 rounded-full p-1"
-                >
-                  <ChevronLeft className="text-white w-6 h-6" />
-                </button>
-              )}
-              {carouselIndex[idx] < elm.postImages.length - 1 && (
-                <button
-                  onClick={() => handleNext(idx, elm.postImages.length)}
-                  className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black/50 rounded-full p-1"
-                >
-                  <ChevronRight className="text-white w-6 h-6" />
-                </button>
+            <div className="relative w-full h-[600px] bg-black">
+              {currentMedia.type === "image" ? (
+                <img
+                  src={mediaUrl}
+                  className="w-full h-full object-cover border border-gray-500 mt-2"
+                  alt="post"
+                />
+              ) : (
+                <video
+                  ref={(el) => (videoRefs.current[idx] = el)}
+                  src={mediaUrl}
+                  className="w-full h-full object-cover border border-gray-500 mt-2"
+                  muted
+                  loop
+                  playsInline
+                  controls
+                />
               )}
 
-              {/* Dots */}
-              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                {elm.postImages.map((_, dotIdx) => (
-                  <div
-                    key={dotIdx}
-                    className={`w-2 h-2 rounded-full ${
-                      carouselIndex[idx] === dotIdx
-                        ? "bg-black dark:bg-white opacity-80"
-                        : "bg-black dark:bg-white opacity-30"
+              {mediaItems.length > 1 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setCarouselIndex((prev) => {
+                        const updated = [...prev];
+                        updated[idx] =
+                          (updated[idx] - 1 + mediaItems.length) %
+                          mediaItems.length;
+                        return updated;
+                      })
+                    }
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 rounded-full p-1"
+                  >
+                    <ChevronLeft className="text-white w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCarouselIndex((prev) => {
+                        const updated = [...prev];
+                        updated[idx] = (updated[idx] + 1) % mediaItems.length;
+                        return updated;
+                      })
+                    }
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 rounded-full p-1"
+                  >
+                    <ChevronRight className="text-white w-6 h-6" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="text-sm mt-2">
+              <div className="flex justify-between mb-2">
+                <div className="flex gap-4">
+                  <Heart
+                    className={`w-6 h-6 cursor-pointer transition-transform duration-200 ${
+                      elm.isLikedByUser
+                        ? "text-red-500 fill-red-500 scale-125"
+                        : "scale-100"
+                    }`}
+                    onClick={() => handleLike(elm._id, idx)}
+                  />
+                  <MessageCircle
+                    className={`w-5 h-5 cursor-pointer ${
+                      elm.isCommentedByUser ? "text-blue-500" : ""
                     }`}
                   />
-                ))}
-              </div>
-            </div>
-
-            {/* post Footer */}
-            <div className="pb-4 text-sm">
-              <div className="flex items-center justify-between py-2">
-                <div className="flex gap-4">
-                  <Heart className="w-5 h-5 cursor-pointer" />
-                  <MessageCircle className="w-5 h-5 cursor-pointer" />
                   <Send className="w-5 h-5 cursor-pointer" />
                 </div>
-                <Bookmark className="w-5 h-5 cursor-pointer" />
+                <Bookmark
+                  className={`w-5 h-5 cursor-pointer ${
+                    elm.isSavedByUser ? "text-yellow-400 fill-yellow-400" : ""
+                  }`}
+                  onClick={() => handleSave(elm._id, idx)}
+                />
               </div>
-
               <div className="font-semibold mb-1">{elm.likeCount} likes</div>
-
               <div className="mb-1">
-                <span className="font-semibold">{elm.userName} </span>
-                <span>
-                  {elm.caption}
-                  <span className="text-gray-500 dark:text-gray-400 cursor-pointer">
-                    {" "}
-                    ... more
-                  </span>
+                <span className="font-semibold mr-1">
+                  {elm.createdBy.username}
                 </span>
+                {elm.caption}
               </div>
-
-              <div className="text-gray-500 dark:text-gray-400 mb-2 cursor-pointer">
-                View all {elm.commentCout} comments
+              <div
+                className="text-gray-500 text-sm cursor-pointer "
+                onClick={() => toggleComments(elm._id)}
+              >
+                {elm.commentCount === 0
+                  ? "No comment yet, be the first to comment"
+                  : showAllComments
+                  ? "Hide comments"
+                  : `View all ${elm.commentCount} comments`}
               </div>
+              <AnimatePresence initial={false}>
+                {displayedComments?.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    {displayedComments.map((comment) => (
+                      <div
+                        key={comment._id}
+                        className="flex justify-between gap-2 mt-2 "
+                      >
+                        {/* profile picture of commenting user */}
+                        <div className="flex gap-2">
+                          <img
+                            src={`http://localhost:5000/${comment?.createdBy?.profilePic?.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt={comment?.createdBy?.username}
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                          <div>
+                            <span className="font-semibold mr-1 ">
+                              {comment?.createdBy?.username ?? "Unknown User"}
+                            </span>
+                            <span className="font-thin">{comment.text}</span>
+                          </div>
+                          <AiFillDelete
+                            className="text-red-500 cursor-pointer"
+                            onClick={() =>
+                              handleDeleteComment({
+                                commentId: comment._id,
+                                postId: elm._id,
+                                postIdx: idx,
+                                setPostDatas,
+                              })
+                            }
+                          />
+                        </div>
+                        {/* display the time of comment */}
+                        <div className="text-xs text-gray-500">
+                          {dayjs(comment.createdAt).fromNow()}
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <div className="flex items-center py-3 border-b border-gray-300 dark:border-gray-800 pt-2">
+              <form
+                onSubmit={(e) => handleCommentSubmit(e, elm._id, idx)}
+                className="flex items-center mt-2 border-b pt-2"
+              >
                 <input
                   type="text"
                   placeholder="Add a comment..."
-                  className="bg-white dark:bg-black text-black dark:text-white flex-1 outline-none text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  value={commentInputs[elm._id] || ""}
+                  onChange={(e) => handleInputChange(elm._id, e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm"
                 />
-                <Smile className="text-gray-500 dark:text-gray-400 w-5 h-5" />
-              </div>
+                <button
+                  type="submit"
+                  className="border px-5 my-1 hover:bg-yellow-400 hover:text-gray-900 hover:font-bold rounded-sm"
+                >
+                  post
+                </button>
+              </form>
             </div>
           </div>
         );
       })}
+      {loading && (
+        <div className="flex justify-center my-4 text-gray-500">Loading...</div>
+      )}
     </div>
   );
 }

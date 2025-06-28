@@ -1,9 +1,39 @@
 import React from "react";
+import { useForm } from "react-hook-form";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import MainContentWrapper from "./MainContentWrapper";
 
 const Login = () => {
+  const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
+
+  const onSubmit = async (data) => {
+    try {
+      console.log("Login data:", data);
+
+      const response = await axios.post(
+        "http://localhost:5000/api/users/login",
+        {
+          email: data.email,
+          password: data.password,
+        }
+      );
+
+      console.log("Login success:", response.data);
+
+      // ✅ Store token and user in localStorage
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data));
+
+      // ✅ Redirect to home/dashboard after login
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      console.log("Error response data:", error?.response?.data);
+      alert(error?.response?.data?.message || "Login failed");
+    }
+  };
 
   const handleSignupClick = () => {
     navigate("/register");
@@ -18,18 +48,18 @@ const Login = () => {
             Please login to your account
           </p>
 
-          <form className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               type="email"
               label="Email"
               placeholder="you@example.com"
-              required
+              {...register("email", { required: true })}
             />
             <Input
               type="password"
               label="Password"
               placeholder="••••••••"
-              required
+              {...register("password", { required: true })}
             />
 
             <button

@@ -33,7 +33,7 @@ const navItems = [
   {
     label: "Notifications",
     icon: <Heart size={22} />,
-    route: "/notifications",
+    route: "/notification ",
   },
   { label: "Create", icon: <Plus size={22} />, route: "/create" },
   { label: "Profile", icon: <User size={22} />, route: "/profile" },
