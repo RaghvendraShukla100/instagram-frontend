@@ -14,9 +14,14 @@ import { AiFillDelete } from "react-icons/ai";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { MdVerified } from "react-icons/md";
+
 dayjs.extend(relativeTime);
 
 function Post() {
+  const navigate = useNavigate();
+
   const [postDatas, setPostDatas] = useState([]);
   const [carouselIndex, setCarouselIndex] = useState([]);
   const [page, setPage] = useState(1);
@@ -27,12 +32,18 @@ function Post() {
   const videoRefs = useRef([]);
   const observer = useRef();
 
+  useEffect(() => {
+    fetchPosts();
+  }, [page]);
+
   const fetchPosts = async () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `http://localhost:5000/api/posts?page=${page}`,
-        { withCredentials: true }
+        `http://localhost:5000/api/posts/?page=${page}`,
+        {
+          withCredentials: true,
+        }
       );
       if (res.data.length === 0) {
         setHasMore(false);
@@ -53,10 +64,6 @@ function Post() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchPosts();
-  }, [page]);
 
   const lastPostElementRef = useCallback(
     (node) => {
@@ -225,47 +232,61 @@ function Post() {
     }
   };
 
-  //////////////////////////
-
-  const handleDeleteComment = async ({
-    commentId,
-    postId,
-    postIdx,
-    setPostDatas,
-  }) => {
+  const handleDeleteComment = async ({ commentId, postId, postIdx }) => {
     try {
       await axios.delete(`http://localhost:5000/api/comments/${commentId}`, {
         withCredentials: true,
       });
 
       setPostDatas((prev) => {
-        const updated = [...prev];
-        const post = updated[postIdx];
+        const updatedPosts = [...prev];
+        const post = updatedPosts[postIdx];
 
-        const updatedComments = post.comments.filter(
-          (c) => c._id !== commentId
-        );
+        // Filter out the deleted comment
+        post.comments = post.comments.filter((c) => c._id !== commentId);
 
-        updated[postIdx] = {
-          ...post,
-          comments: updatedComments,
-          commentCount: post.commentCount - 1,
-        };
+        // Decrement comment count safely
+        post.commentCount = Math.max(0, post.commentCount - 1);
 
-        return updated;
+        updatedPosts[postIdx] = post;
+        return updatedPosts;
       });
     } catch (error) {
       console.error("Error deleting comment:", error);
-      toast.error(error.response?.data?.message || "Failed to delete comment");
     }
   };
 
-  ////////////////////////////
+  const handleFollowButtonClick = async (userId, postIdx) => {
+    try {
+      const res = await axios.put(
+        `http://localhost:5000/api/users/${userId}/follow`,
+        {},
+        { withCredentials: true }
+      );
+
+      const { isFollowing, message } = res.data;
+
+      // ✅ Update local state so UI updates immediately
+      setPostDatas((prev) => {
+        const updated = [...prev];
+        updated[postIdx] = {
+          ...updated[postIdx],
+          isFollowingCreator: isFollowing,
+        };
+        return updated;
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {postDatas.map((elm, idx) => {
         const mediaItems = elm.media;
-        const currentMedia = mediaItems[carouselIndex[idx]];
+        const currentIdx = carouselIndex[idx] ?? 0;
+        const currentMedia = mediaItems[currentIdx];
+
         const mediaUrl = `http://localhost:5000/${currentMedia.url.replace(
           /\\/g,
           "/"
@@ -294,11 +315,26 @@ function Post() {
                 />
                 <div className="flex gap-4">
                   <div className="flex items-center gap-1 text-sm font-semibold">
-                    <span>{elm.createdBy.username}</span>
+                    <span
+                      onClick={() => navigate(`/profile/${elm.createdBy._id}`)}
+                      className="cursor-pointer "
+                    >
+                      {elm.createdBy.username}
+                    </span>
+
                     {elm.createdBy.isVerified && (
-                      <CheckCircle className="text-blue-500 w-4 h-4" />
+                      <MdVerified className="text-blue-600  " />
                     )}
                   </div>
+                  <span
+                    className="text-blue-600 font-semibold text-sm cursor-pointer"
+                    onClick={() =>
+                      handleFollowButtonClick(elm.createdBy._id, idx)
+                    }
+                  >
+                    {elm.isFollowingCreator ? "Following" : "Follow"}
+                  </span>
+
                   <div className="text-xs text-gray-500">
                     {dayjs(elm.createdAt).fromNow()}
                   </div>
@@ -378,7 +414,7 @@ function Post() {
                 </div>
                 <Bookmark
                   className={`w-5 h-5 cursor-pointer ${
-                    elm.isSavedByUser ? "text-yellow-400 fill-yellow-400" : ""
+                    elm.isSavedByUser ? "text-white fill-white" : ""
                   }`}
                   onClick={() => handleSave(elm._id, idx)}
                 />
@@ -412,10 +448,10 @@ function Post() {
                     {displayedComments.map((comment) => (
                       <div
                         key={comment._id}
-                        className="flex justify-between gap-2 mt-2 "
+                        className="flex justify-between items-center gap-2 mt-2 "
                       >
                         {/* profile picture of commenting user */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                           <img
                             src={`http://localhost:5000/${comment?.createdBy?.profilePic?.replace(
                               /\\/g,
@@ -430,6 +466,7 @@ function Post() {
                             </span>
                             <span className="font-thin">{comment.text}</span>
                           </div>
+                          {/* button to delete the comment */}
                           <AiFillDelete
                             className="text-red-500 cursor-pointer"
                             onClick={() =>
@@ -437,7 +474,6 @@ function Post() {
                                 commentId: comment._id,
                                 postId: elm._id,
                                 postIdx: idx,
-                                setPostDatas,
                               })
                             }
                           />

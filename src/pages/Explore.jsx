@@ -1,215 +1,51 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+const baseURL = import.meta.env.VITE_BACKEND_URL; // if using Vite
 import { Heart, MessageCircle, PlaySquare, Copy } from "lucide-react";
 import MainContentWrapper from "../components/MainContentWrapper";
+import axios from "axios";
 
 function Explore() {
-  const posts = [
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/0d/21/17/0d21177daaea06740b9b08bf6039e6d9.jpg",
-      likes: "20.6K",
-      comments: 407,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/29/3c/91/293c91ea0791d9f366ce5fbb6bb6e9c8.jpg",
-      likes: "20.6K",
-      comments: 1600,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-      likes: "13.4K",
-      comments: 228,
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/01/56/f7/0156f75522fe1da14b8659bdb80d1e2b.jpg",
-    },
-    {
-      type: "reel",
-      src: "https://i.pinimg.com/736x/82/b4/e0/82b4e0b917ca847284b7d71f6f06ca96.jpg",
-    },
-    {
-      type: "image",
-      src: "https://i.pinimg.com/736x/c6/39/74/c639745014959ee6edeb4fc3242779e3.jpg",
-    },
-  ];
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   let tallReelCount = 0;
+
+  useEffect(() => {
+    fetchPostData();
+  }, []);
+
+  const fetchPostData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`http://localhost:5000/api/posts`, {
+        withCredentials: true,
+      });
+      setPosts(res.data.posts || res.data);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setError("Failed to load posts.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <MainContentWrapper>
+        <div className="text-center py-10 text-gray-400">Loading posts...</div>
+      </MainContentWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainContentWrapper>
+        <div className="text-center py-10 text-red-400">{error}</div>
+      </MainContentWrapper>
+    );
+  }
+  console.log(posts);
 
   return (
     <MainContentWrapper>
@@ -217,22 +53,36 @@ function Explore() {
         className="px-10 py-10 grid grid-cols-3 auto-rows-[350px] gap-2"
         style={{ gridAutoFlow: "dense" }}
       >
-        {posts.map((post, index) => {
-          const isReel = post.type === "reel";
+        {posts?.map((post, index) => {
+          const isReel = post.media?.[0]?.type === "video";
           const isTall = isReel && tallReelCount++ % 2 === 0;
+          const mediaUrl = `${baseURL}/${post.media?.[0]?.url.replace(
+            /\\/g,
+            "/"
+          )}`;
 
           return (
             <div
-              key={index}
+              key={post._id || index}
               className={`relative group overflow-hidden ${
                 isTall ? "row-span-2" : ""
               }`}
             >
-              <img
-                src={post.src}
-                alt={`Post ${index}`}
-                className="w-full h-full object-cover hover:brightness-75 transition duration-300"
-              />
+              {isReel ? (
+                <video
+                  src={mediaUrl}
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover hover:brightness-75 transition duration-300"
+                />
+              ) : (
+                <img
+                  src={mediaUrl}
+                  alt={`Post ${index}`}
+                  className="w-full h-full object-cover hover:brightness-75 transition duration-300"
+                />
+              )}
 
               {/* Top Left (Reel icon) */}
               {isReel && (
@@ -248,10 +98,11 @@ function Explore() {
               {(post.likes || post.comments) && (
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="flex items-center gap-1 text-white text-sm">
-                    <Heart className="w-4 h-4" /> {post.likes}
+                    <Heart className="w-4 h-4" /> {post.likeCount}
                   </div>
                   <div className="flex items-center gap-1 text-white text-sm">
-                    <MessageCircle className="w-4 h-4" /> {post.comments}
+                    <MessageCircle className="w-4 h-4" /> {post.commentCount}{" "}
+                    comments
                   </div>
                 </div>
               )}

@@ -8,7 +8,7 @@ const MainContentWrapper = ({ children }) => {
         bg-white dark:bg-black
         text-gray-950 dark:text-gray-200
         border-l border-gray-300 dark:border-gray-700
-        transition-all
+       transition-all flex justify-center items-center box-border
       "
     >
       {children}

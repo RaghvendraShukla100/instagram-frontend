@@ -9,8 +9,9 @@ import PageNotFound from "./pages/PageNotFound";
 import Reels from "./pages/Reels";
 import DetailedPost from "./pages/DetailedPost";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CreatePost from "./components/CreatePost";
 import Profile from "./pages/Profile";
-import axios from "axios"; // ✅ import axios here
+import axios from "axios";
 
 // ✅ Set token as default header (if it exists)
 const token = localStorage.getItem("token");
@@ -57,10 +58,34 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/profile/:userId" // ✅ fixed dynamic route
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile" // ✅ fixed dynamic route
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create" // ✅ fixed dynamic route
+              element={
+                <ProtectedRoute>
+                  <CreatePost />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </div>
