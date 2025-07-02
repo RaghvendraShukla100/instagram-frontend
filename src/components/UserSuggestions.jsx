@@ -13,8 +13,10 @@ const UserSuggestions = () => {
       const response = await axios.get("http://localhost:5000/api/users/me", {
         withCredentials: true,
       });
-      setUser(response.data.user); // ensure backend sends { user }
-      setSuggestedUsers(response.data.secondDegreeUsers || []);
+      console.log(response.data);
+
+      setUser(response?.data.user); // ensure backend sends { user }
+      setSuggestedUsers(response?.data.secondDegreeUsers || []);
     } catch (err) {
       console.error("Error fetching user profile:", err);
       setError("Failed to load user suggestions.");
