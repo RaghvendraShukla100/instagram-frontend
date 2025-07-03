@@ -28,6 +28,9 @@ function Post() {
   const [loading, setLoading] = useState(false);
   const [commentInputs, setCommentInputs] = useState({});
   const [expandedPosts, setExpandedPosts] = useState(new Set());
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState({});
+
   const videoRefs = useRef([]);
   const observer = useRef();
 
@@ -62,6 +65,71 @@ function Post() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const idx = Number(entry.target.getAttribute("data-idx"));
+          const video = videoRefs.current[idx];
+          if (!video) return;
+
+          if (entry.isIntersecting) {
+            video.muted = isMuted; // ✅ ensure global mute/unmute respected
+            video.play().catch(() => {}); // auto-play
+            setIsPlaying((prev) => ({ ...prev, [idx]: true }));
+          } else {
+            video.pause();
+            setIsPlaying((prev) => ({ ...prev, [idx]: false }));
+          }
+        });
+      },
+      { threshold: 0.7 }
+    );
+
+    videoRefs.current.forEach((video) => {
+      if (video) {
+        observer.observe(video);
+        video.muted = isMuted; // ✅ apply global mute state on attach
+      }
+    });
+
+    return () => {
+      videoRefs.current.forEach((video) => {
+        if (video) observer.unobserve(video);
+      });
+    };
+  }, [postDatas, isMuted]); // ✅ include isMuted in deps for re-applying on toggle
+
+  // Toggle play/pause on video tap
+  const handleVideoClick = (idx) => {
+    const video = videoRefs.current[idx];
+    if (!video) return;
+
+    if (video.paused) {
+      video.play();
+      setIsPlaying((prev) => ({ ...prev, [idx]: true }));
+    } else {
+      video.pause();
+      setIsPlaying((prev) => ({ ...prev, [idx]: false }));
+    }
+  };
+
+  // Toggle mute/unmute on speaker icon click
+  const handleMuteToggle = () => {
+    setIsMuted((prev) => {
+      const newMuteState = !prev;
+
+      // Apply to all current videos immediately
+      videoRefs.current.forEach((video) => {
+        if (video) {
+          video.muted = newMuteState;
+        }
+      });
+
+      return newMuteState;
+    });
   };
 
   const lastPostElementRef = useCallback(
@@ -359,12 +427,23 @@ function Post() {
                 <video
                   ref={(el) => (videoRefs.current[idx] = el)}
                   src={mediaUrl}
-                  className=" h-full object-cover  "
+                  data-idx={idx} // required for observer
+                  className="h-full object-cover cursor-pointer"
                   muted
                   loop
                   playsInline
+                  onClick={() => handleVideoClick(idx)} // tap to play/pause
                 />
               )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMuteToggle();
+                }}
+                className="absolute top-2 right-2 bg-black/40 text-white p-1 rounded-full text-xs"
+              >
+                {isMuted ? "🔇" : "🔊"}
+              </button>
 
               {mediaItems.length > 1 && (
                 <>
