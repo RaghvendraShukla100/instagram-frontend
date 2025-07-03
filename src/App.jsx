@@ -11,6 +11,7 @@ import DetailedPost from "./pages/DetailedPost";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreatePost from "./components/CreatePost";
 import Profile from "./pages/Profile";
+
 import axios from "axios";
 
 // ✅ Set token as default header (if it exists)
@@ -50,8 +51,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
-              path="/notification"
+              path="/detailedPost"
               element={
                 <ProtectedRoute>
                   <DetailedPost />

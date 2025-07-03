@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   IoIosArrowDropleftCircle,
   IoIosArrowDroprightCircle,
@@ -6,7 +7,6 @@ import {
 } from "react-icons/io";
 import {
   MoreHorizontal,
-  Smile,
   Heart,
   MessageCircle,
   Send,
@@ -14,47 +14,49 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { BiSolidSend } from "react-icons/bi";
 
-const postData = [
-  {
-    profileImage:
-      "https://i.pinimg.com/736x/6a/c1/f8/6ac1f86b310a39559215d5b4439e2a39.jpg",
-    userName: "chanelsoerholt",
-    timePassedFromPost: "2d",
-    caption: "just watching the sunset 🌅 what about u?",
-    likeCount: 13458,
-    commentCount: 1248,
-    postImages: [
-      "https://i.pinimg.com/736x/d0/b0/c5/d0b0c5089d2d475f1e974ebdc48cfa95.jpg",
-      "https://i.pinimg.com/736x/a7/93/11/a79311b2c07d71dcbd680caa26c160f1.jpg",
-      "https://i.pinimg.com/736x/19/cc/d8/19ccd85eaf493588018f58a1c590194c.jpg",
-    ],
-    isVerified: true,
-  },
-  {
-    profileImage:
-      "https://i.pinimg.com/736x/6a/c1/f8/6ac1f86b310a39559215d5b4439e2a39.jpg",
-    userName: "nikitadatta",
-    timePassedFromPost: "2h",
-    caption: "Exploring the beach vibes! 🌊",
-    likeCount: 27891,
-    commentCount: 1873,
-    postImages: [
-      "https://i.pinimg.com/736x/50/c4/68/50c46853d24196c583a695b8f448f820.jpg",
-      "https://i.pinimg.com/736x/0e/43/d5/0e43d5982749b83f8a688cf66185d5f4.jpg",
-    ],
-    isVerified: true,
-  },
-];
+// ✅ Day.js imports
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
-function DetailedPost({ onClose }) {
-  const [postIndex, setPostIndex] = useState(0);
-  const [imageIndex, setImageIndex] = useState(0);
+function DetailedPost() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { profileData, postId, mediaIndex } = location.state || {};
+  console.log(profileData);
+
+  const postData = profileData.posts.map((post) => ({
+    _id: post._id,
+    profileImage: `http://localhost:5000/${profileData.profilePic.replace(
+      /\\/g,
+      "/"
+    )}`,
+    userName: profileData.username,
+    timePassedFromPost: getTimePassed(post.createdAt),
+    caption: post.caption,
+    likeCount: post.likes ? post.likes.length : 0,
+    commentCount: post.comments ? post.comments.length : 0,
+    postImages: post.media.map((m) => ({
+      url: `http://localhost:5000/${m.url.replace(/\\/g, "/")}`,
+      type: m.type,
+    })),
+    isVerified: profileData.isVerified,
+  }));
+
+  const initialPostIndex = postId
+    ? postData.findIndex((post) => post._id === postId)
+    : 0;
+
+  const [postIndex, setPostIndex] = useState(
+    initialPostIndex !== -1 ? initialPostIndex : 0
+  );
+  const [imageIndex, setImageIndex] = useState(mediaIndex || 0);
 
   const currentPost = postData[postIndex];
   const currentImage = currentPost.postImages[imageIndex];
 
-  // Navigate between images within the same post
   const handleInnerPrev = () => {
     setImageIndex((prev) =>
       prev === 0 ? currentPost.postImages.length - 1 : prev - 1
@@ -67,7 +69,6 @@ function DetailedPost({ onClose }) {
     );
   };
 
-  // Navigate between posts
   const handlePrevPost = () => {
     const prevPost = postIndex === 0 ? postData.length - 1 : postIndex - 1;
     setPostIndex(prevPost);
@@ -80,11 +81,18 @@ function DetailedPost({ onClose }) {
     setImageIndex(0);
   };
 
+  const handleCloseButtonClick = () => {
+    navigate(-1);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       {/* Close Button */}
-      <div className="absolute top-5 right-5 cursor-pointer" onClick={onClose}>
-        <IoMdClose className="w-8 h-8 text-gray-300 hover:text-white transition" />
+      <div
+        className="absolute top-5 right-5 cursor-pointer"
+        onClick={handleCloseButtonClick}
+      >
+        <IoMdClose className="w-8 h-8 text-gray-300 transition hover:text-red-600" />
       </div>
 
       {/* Previous Post Button */}
@@ -95,47 +103,54 @@ function DetailedPost({ onClose }) {
         <IoIosArrowDropleftCircle className="w-12 h-12 text-gray-300 hover:text-white transition" />
       </div>
 
-      {/* Main Container */}
-      <div className="flex items-center h-[90%] max-w-7xl bg-black rounded-lg overflow-hidden relative">
-        {/* Left: Media with Inner Carousel Controls */}
+      {/* Main Post Modal */}
+      <div className="flex items-center h-[90%] max-w-7xl bg-black rounded-sm overflow-hidden relative">
+        {/* Media Viewer */}
         <div className="w-fit max-w-[65%] max-h-[90vh] relative flex items-center justify-center bg-black">
-          {/* Inner Left Arrow */}
           {currentPost.postImages.length > 1 && (
             <div
               onClick={handleInnerPrev}
               className="absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer bg-black/40 rounded-full p-1"
             >
-              <ChevronLeft className="w-8 h-8 text-white" />
+              <ChevronLeft className="w-4 h-4 text-white" />
             </div>
           )}
 
-          {/* Image */}
-          <img
-            src={currentImage}
-            alt="Post Media"
-            className="max-h-[90vh] max-w-full object-contain rounded-l-lg"
-          />
+          {currentImage.type === "image" ? (
+            <img
+              src={currentImage.url}
+              alt="Post Media"
+              className="max-h-[90vh] max-w-full object-contain"
+            />
+          ) : (
+            <video
+              src={currentImage.url}
+              controls
+              autoPlay
+              loop
+              className="max-h-[90vh] max-w-full object-contain"
+            />
+          )}
 
-          {/* Inner Right Arrow */}
           {currentPost.postImages.length > 1 && (
             <div
               onClick={handleInnerNext}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer bg-black/40 rounded-full p-1"
             >
-              <ChevronRight className="w-8 h-8 text-white" />
+              <ChevronRight className="w-4 h-4 text-white" />
             </div>
           )}
         </div>
 
-        {/* Right: Details Panel */}
-        <div className="w-[400px] h-full bg-[#252323] text-white p-4 overflow-y-auto rounded-r-lg">
+        {/* Post Details Panel */}
+        <div className="w-[400px] flex flex-col  h-full bg-[#252323] text-white p-4 rounded-sm">
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center ">
             <div className="flex items-center gap-3">
               <img
                 src={currentPost.profileImage}
                 alt={currentPost.userName}
-                className="w-10 rounded-full border-2 border-[#b519a5]"
+                className="w-10 h-10 rounded-full border-2"
               />
               <span className="font-bold">{currentPost.userName}</span>
               <span className="text-xs">{currentPost.timePassedFromPost}</span>
@@ -144,13 +159,13 @@ function DetailedPost({ onClose }) {
             <MoreHorizontal />
           </div>
 
-          {/* Comments Placeholder */}
-          <div className="h-[68%] py-5 flex justify-center items-center">
+          {/* body -Comments */}
+          <div className="flex-1 h-[68%] py-5 flex justify-center items-center overflow-hidden">
             <div className="font-bold">No comments to display</div>
           </div>
 
           {/* Footer */}
-          <div className="pb-4 text-sm">
+          <div className="pb-4 text-sm ">
             <div className="flex items-center justify-between py-2">
               <div className="flex gap-4">
                 <Heart className="w-5 h-5 cursor-pointer" />
@@ -164,18 +179,16 @@ function DetailedPost({ onClose }) {
             </div>
             <div className="mb-1">
               <span className="font-semibold">{currentPost.userName} </span>
-              {currentPost.caption}
+              {currentPost.caption.trim().split(" ").slice(0, 5).join(" ")}
             </div>
-            <div className="text-gray-400 mb-2 cursor-pointer">
-              View all {currentPost.commentCount.toLocaleString()} comments
-            </div>
-            <div className="flex items-center border-t border-gray-700 pt-2">
+
+            <div className="flex items-center border-t border-gray-700 pt-3">
               <input
                 type="text"
                 placeholder="Add a comment..."
-                className="bg-transparent text-white flex-1 outline-none text-sm placeholder:text-gray-400"
+                className="bg-transparent  text-white flex-1 outline-none text-sm placeholder:text-gray-400"
               />
-              <Smile className="w-5 h-5 text-gray-400 ml-2" />
+              <BiSolidSend className="cursor-pointer" />
             </div>
           </div>
         </div>
@@ -190,6 +203,15 @@ function DetailedPost({ onClose }) {
       </div>
     </div>
   );
+}
+
+/**
+ * Uses Day.js to calculate human-readable time difference.
+ * @param {string} createdAt - ISO date string
+ * @returns {string} - Time passed in "3 minutes ago" format
+ */
+function getTimePassed(createdAt) {
+  return dayjs(createdAt).fromNow();
 }
 
 export default DetailedPost;

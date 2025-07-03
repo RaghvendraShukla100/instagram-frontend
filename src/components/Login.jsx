@@ -37,6 +37,7 @@ const Login = () => {
 
   const handleSignupClick = () => {
     navigate("/register");
+    window.location.reload();
   };
 
   return (

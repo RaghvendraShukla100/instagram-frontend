@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MainContentWrapper from "../components/MainContentWrapper";
 import { MdVerified } from "react-icons/md";
 import { IoPersonAddSharp } from "react-icons/io5";
-import { IoIosMore } from "react-icons/io";
-import { IoMdGrid } from "react-icons/io";
+import { IoIosMore, IoMdGrid } from "react-icons/io";
 import { PiVideoFill } from "react-icons/pi";
 import { BiSolidUserPin } from "react-icons/bi";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
 
 function Profile() {
   const { userId } = useParams();
-
+  const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
-  const [logedInUserPost, setLoggedInUserPost] = useState();
+  const [logedInUserPost, setLoggedInUserPost] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [followLoading, setFollowLoading] = useState(false);
@@ -41,8 +42,6 @@ function Profile() {
       const response = await axios.get(`http://localhost:5000/api/users/me`, {
         withCredentials: true,
       });
-      console.log("Before state ", response.data.userPosts);
-
       setProfileData(response.data.user);
       setLoggedInUserPost(response.data.userPosts);
     } catch (error) {
@@ -52,7 +51,6 @@ function Profile() {
       setLoading(false);
     }
   };
-  console.log(profileData);
 
   useEffect(() => {
     if (userId) fetchUserData();
@@ -69,11 +67,6 @@ function Profile() {
         { withCredentials: true }
       );
       toast.success(res.data.message || "Follow status updated.");
-
-      /**
-       * ✅ Refetch the profile data cleanly after follow/unfollow,
-       * ensuring updated followers count and isFollowing without affecting UI structure.
-       */
       fetchUserData();
     } catch (err) {
       console.error(err);
@@ -81,6 +74,12 @@ function Profile() {
     } finally {
       setFollowLoading(false);
     }
+  };
+
+  const handleProfilePostClick = (postId, mediaIndex) => {
+    navigate("/detailedPost", {
+      state: { profileData, postId, mediaIndex },
+    });
   };
 
   if (loading) {
@@ -111,7 +110,6 @@ function Profile() {
       <div className="px-6 md:px-24 py-8 md:py-14">
         {/* Profile Section */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-          {/* Profile Image */}
           <div className="w-40 aspect-square border-4 overflow-hidden rounded-full p-1">
             <img
               src={profilePicUrl}
@@ -120,7 +118,6 @@ function Profile() {
             />
           </div>
 
-          {/* Profile Info */}
           <div className="md:ml-10 md:pl-10 w-full">
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <span className="font-medium text-lg">
@@ -142,7 +139,6 @@ function Profile() {
                   ? "Following"
                   : "Follow"}
               </button>
-
               <button className="bg-[#25292e] capitalize font-medium h-8 px-5 rounded-md">
                 message
               </button>
@@ -188,7 +184,8 @@ function Profile() {
             <BiSolidUserPin className="w-8 h-8 cursor-pointer" />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {/* post are here */}
+          <div className="grid grid-cols-2  md:grid-cols-3 gap-2">
             {postData.length === 0 && (
               <div className="col-span-full text-center text-gray-400 py-10">
                 No posts to display.
@@ -197,34 +194,49 @@ function Profile() {
 
             {postData.map((post) => {
               if (!post.media || post.media.length === 0) return null;
-
-              const media = post.media[0];
-              const mediaUrl = `http://localhost:5000/${media.url.replace(
-                /\\/g,
-                "/"
-              )}`;
-
               return (
                 <div
                   key={post._id}
-                  className="w-full h-72 md:h-[430px] overflow-hidden relative"
+                  className="w-full  h-72 md:h-[430px] overflow-hidden relative"
                 >
-                  {media.type === "image" ? (
-                    <img
-                      src={mediaUrl}
-                      alt="post"
-                      loading="lazy"
-                      className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-                    />
-                  ) : media.type === "video" ? (
-                    <video
-                      src={mediaUrl}
-                      controls
-                      muted
-                      loop
-                      className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-                    />
-                  ) : null}
+                  <Swiper
+                    spaceBetween={0}
+                    slidesPerView={1}
+                    className="w-full h-full"
+                  >
+                    {post.media.map((media, index) => {
+                      const mediaUrl = `http://localhost:5000/${media.url.replace(
+                        /\\/g,
+                        "/"
+                      )}`;
+                      return (
+                        <SwiperSlide key={index} className="w-full h-full">
+                          {media.type === "image" ? (
+                            <img
+                              src={mediaUrl}
+                              alt="post"
+                              loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                              onClick={() =>
+                                handleProfilePostClick(post._id, index)
+                              }
+                            />
+                          ) : media.type === "video" ? (
+                            <video
+                              src={mediaUrl}
+                              muted
+                              loop
+                              playsInline
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                              onClick={() =>
+                                handleProfilePostClick(post._id, index)
+                              }
+                            />
+                          ) : null}
+                        </SwiperSlide>
+                      );
+                    })}
+                  </Swiper>
                 </div>
               );
             })}

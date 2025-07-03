@@ -8,7 +8,6 @@ import {
   Bookmark,
   ChevronRight,
   ChevronLeft,
-  CheckCircle,
 } from "lucide-react";
 import { AiFillDelete } from "react-icons/ai";
 import dayjs from "dayjs";
@@ -91,14 +90,14 @@ function Post() {
       });
     } else {
       try {
-        console.log("Fetching comments for postId:", postId);
+        // console.log("Fetching comments for postId:", postId);
 
         const res = await axios.get(
           `http://localhost:5000/api/comments/${postId}`,
           { withCredentials: true }
         );
 
-        console.log("Fetched comments:", res.data.comments);
+        // console.log("Fetched comments:", res.data.comments);
 
         const fetchedComments = res.data.comments.map((comment) => ({
           ...comment,
@@ -260,7 +259,6 @@ function Post() {
     try {
       const res = await axios.put(
         `http://localhost:5000/api/users/${userId}/follow`,
-        {},
         { withCredentials: true }
       );
 
@@ -304,15 +302,19 @@ function Post() {
           <div
             key={elm._id}
             ref={idx === postDatas.length - 1 ? lastPostElementRef : null}
-            className="max-w-lg mx-auto bg-white dark:bg-black text-black dark:text-white font-sans rounded-sm shadow-sm"
+            className="max-w-lg mx-auto  bg-white dark:bg-black text-black
+           md:w-[500px]   dark:text-white font-sans rounded-sm shadow-sm"
           >
-            <div className="flex justify-between items-center mt-10">
-              <div className="flex items-center gap-3">
-                <img
-                  src={profilePic}
-                  className="h-10 w-10 rounded-full object-cover"
-                  alt={elm.createdBy.username}
-                />
+            {/* post heading */}
+            <div className="flex justify-between items-center mt-7 mb-3  ">
+              <div className="flex items-center gap-3 ">
+                <div className="border-2 p-[2px] rounded-full">
+                  <img
+                    src={profilePic}
+                    className="h-8 w-8 rounded-full object-cover"
+                    alt={elm.createdBy.username}
+                  />
+                </div>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-1 text-sm font-semibold">
                     <span
@@ -335,7 +337,7 @@ function Post() {
                     {elm.isFollowingCreator ? "Following" : "Follow"}
                   </span>
 
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 ">
                     {dayjs(elm.createdAt).fromNow()}
                   </div>
                 </div>
@@ -343,22 +345,24 @@ function Post() {
               <MoreHorizontal className="cursor-pointer" />
             </div>
 
-            <div className="relative w-full h-[600px] bg-black">
+            <div
+              className="relative flex items-center justify-center border rounded-sm
+             border-gray-600 w-[500px] h-[600px] bg-black"
+            >
               {currentMedia.type === "image" ? (
                 <img
                   src={mediaUrl}
-                  className="w-full h-full object-cover border border-gray-500 mt-2"
+                  className="w-full h-full object-cover "
                   alt="post"
                 />
               ) : (
                 <video
                   ref={(el) => (videoRefs.current[idx] = el)}
                   src={mediaUrl}
-                  className="w-full h-full object-cover border border-gray-500 mt-2"
+                  className=" h-full object-cover  "
                   muted
                   loop
                   playsInline
-                  controls
                 />
               )}
 
@@ -376,7 +380,7 @@ function Post() {
                     }
                     className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 rounded-full p-1"
                   >
-                    <ChevronLeft className="text-white w-6 h-6" />
+                    <ChevronLeft className="text-white w-4 h-4" />
                   </button>
                   <button
                     onClick={() =>
@@ -388,7 +392,7 @@ function Post() {
                     }
                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 rounded-full p-1"
                   >
-                    <ChevronRight className="text-white w-6 h-6" />
+                    <ChevronRight className="text-white w-4 h-4" />
                   </button>
                 </>
               )}
@@ -424,14 +428,14 @@ function Post() {
                 <span className="font-semibold mr-1">
                   {elm.createdBy.username}
                 </span>
-                {elm.caption}
+                {elm.caption.trim().split(" ").slice(0, 10).join(" ")}
               </div>
               <div
                 className="text-gray-500 text-sm cursor-pointer "
                 onClick={() => toggleComments(elm._id)}
               >
                 {elm.commentCount === 0
-                  ? "No comment yet, be the first to comment"
+                  ? "No comment yet".toUpperCase()
                   : showAllComments
                   ? "Hide comments"
                   : `View all ${elm.commentCount} comments`}
@@ -490,7 +494,7 @@ function Post() {
 
               <form
                 onSubmit={(e) => handleCommentSubmit(e, elm._id, idx)}
-                className="flex items-center mt-2 border-b pt-2"
+                className="flex items-center mt-2 border-b border-gray-800 pb-2 pt-2"
               >
                 <input
                   type="text"
@@ -501,7 +505,7 @@ function Post() {
                 />
                 <button
                   type="submit"
-                  className="border px-5 my-1 hover:bg-yellow-400 hover:text-gray-900 hover:font-bold rounded-sm"
+                  className="font-semibold capitalize hover:underline my-1"
                 >
                   post
                 </button>

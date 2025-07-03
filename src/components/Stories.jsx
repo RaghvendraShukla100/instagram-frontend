@@ -1,54 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { ChevronRight, ChevronLeft } from "lucide-react"; // or any other icons
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import axios from "axios";
 
 const Stories = () => {
-  // const storyList = [
-  //   {
-  //     name: "neha",
-  //     img: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-  //   },
-  //   {
-  //     name: "ram",
-  //     img: "https://i.pinimg.com/736x/b5/35/2c/b5352cdb93b8a029f0b8e1feb7dfa47a.jpg",
-  //   },
-  //   {
-  //     name: "rahul",
-  //     img: "https://i.pinimg.com/736x/9e/8b/67/9e8b67dafcc95baf049aaee887ee29ab.jpg",
-  //   },
-  //   {
-  //     name: "ravi",
-  //     img: "https://i.pinimg.com/736x/42/7d/92/427d920e486106dc8c55faa2515bbc52.jpg",
-  //   },
-  //   {
-  //     name: "soham",
-  //     img: "https://i.pinimg.com/736x/93/d8/9c/93d89c743f7811926f573450de99afe1.jpg",
-  //   },
-  //   {
-  //     name: "sona",
-  //     img: "https://i.pinimg.com/736x/0f/5c/b4/0f5cb4eb274e9486660b0a10d0d6026b.jpg",
-  //   },
-  //   {
-  //     name: "neha 2",
-  //     img: "https://i.pinimg.com/736x/ef/da/80/efda80d1aefdd638528962aa628d7ad7.jpg",
-  //   },
-  //   {
-  //     name: "ram 2",
-  //     img: "https://i.pinimg.com/736x/b5/35/2c/b5352cdb93b8a029f0b8e1feb7dfa47a.jpg",
-  //   },
-  // ];
-  const [stories, setStories] = useState();
+  const [stories, setStories] = useState([]);
   const [startIndex, setStartIndex] = useState(0);
-  useEffect(() => {
-    axios.get("http://localhost:5000/api/stories").then((res) => {
-      setStories(res.data);
-    });
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   const itemsPerPage = 6;
 
-  const visibleStories = stories?.slice(startIndex, startIndex + itemsPerPage);
-  const hasMoreRight = startIndex + itemsPerPage < stories?.length;
+  useEffect(() => {
+    const fetchStories = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/stories", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // if needed
+          },
+        });
+        setStories(res.data.stories || []); // backend returns { stories: [...] }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStories();
+  }, []);
+
+  const visibleStories = stories.slice(startIndex, startIndex + itemsPerPage);
+  const hasMoreRight = startIndex + itemsPerPage < stories.length;
   const hasMoreLeft = startIndex > 0;
 
   const handleNext = () => {
@@ -63,8 +44,16 @@ const Stories = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="text-white text-center py-5">Loading stories...</div>
+    );
+  }
+
+  // console.log("stories data : ", stories[0]?.createdBy?.profilePic);
+
   return (
-    <div className="relative flex items-center gap-4 py-5 ">
+    <div className="relative flex items-center gap-4 py-5">
       {/* Left Arrow */}
       {hasMoreLeft && (
         <button
@@ -77,22 +66,32 @@ const Stories = () => {
 
       {/* Stories */}
       <div className="flex gap-4 overflow-x-hidden px-8">
-        {visibleStories?.map((elm, index) => (
-          <div key={index} className="flex flex-col items-center w-[90px]">
+        {visibleStories.map((story, index) => (
+          <div
+            key={story._id || index}
+            className="flex flex-col items-center w-[90px]"
+          >
             {/* Gradient ring wrapper */}
             <div className="w-[90px] h-[90px] rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-fuchsia-700">
               {/* Inner black circle */}
               <div className="w-full h-full rounded-full bg-black p-[2px]">
                 {/* Profile image */}
                 <img
-                  src={elm.img}
-                  alt={elm.name}
+                  src={
+                    stories?.createdBy?.profilePic
+                      ? `http://localhost:5000/${stories.createdBy.profilePic.replace(
+                          /\\/g,
+                          "/"
+                        )}`
+                      : "https://via.placeholder.com/90x90.png?text=Story"
+                  }
+                  alt={stories?.createdBy?.name || "Story"}
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>
             </div>
             <div className="text-xs text-center mt-2 text-white truncate w-full">
-              {elm.name}
+              {story.createdBy?.name || story.createdBy?.username || "User"}
             </div>
           </div>
         ))}

@@ -7,13 +7,19 @@ const UserSuggestions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const handleLogOutClick = () => {
+    localStorage.removeItem("token"); // delete token
+    navigate("/login"); // redirect
+
+    window.location.reload();
+  };
   const getUserProfile = async () => {
     try {
       setLoading(true);
       const response = await axios.get("http://localhost:5000/api/users/me", {
         withCredentials: true,
       });
-      console.log(response.data);
+      // console.log(response.data);
 
       setUser(response?.data.user); // ensure backend sends { user }
       setSuggestedUsers(response?.data.secondDegreeUsers || []);
@@ -32,8 +38,7 @@ const UserSuggestions = () => {
   const handleFollow = async (targetUserId) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/users/toggle-follow/${targetUserId}`,
-        {},
+        `http://localhost:5000/api/users/${targetUserId}/follow`,
         { withCredentials: true }
       );
 
@@ -82,7 +87,12 @@ const UserSuggestions = () => {
             <div className="text-xs">{user?.name}</div>
           </div>
         </div>
-        <button className="text-blue-500 font-semibold text-xs">Switch</button>
+        <button
+          className="text-blue-500 font-semibold text-xs"
+          onClick={handleLogOutClick}
+        >
+          Log out
+        </button>
       </div>
 
       {/* Suggestions Header */}
